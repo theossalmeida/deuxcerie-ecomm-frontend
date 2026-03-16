@@ -1,0 +1,181 @@
+"use client";
+
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Check } from "lucide-react";
+import { Product } from "@/types";
+import { products } from "@/data/mock";
+
+interface AdditionalsOverlayProps {
+  product: Product | null;
+  onConfirm: (product: Product, additionals: Product[]) => void;
+  onClose: () => void;
+}
+
+export function AdditionalsOverlay({
+  product,
+  onConfirm,
+  onClose,
+}: AdditionalsOverlayProps) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const additionals = products.filter(
+    (p) => p.category === "Adicional" && p.status === "active"
+  );
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleConfirm = () => {
+    if (!product) return;
+    const selectedAdditionals = additionals.filter((a) => selected.has(a.id));
+    onConfirm(product, selectedAdditionals);
+    setSelected(new Set());
+  };
+
+  const handleClose = () => {
+    setSelected(new Set());
+    onClose();
+  };
+
+  const totalAdditionals = additionals
+    .filter((a) => selected.has(a.id))
+    .reduce((s, a) => s + a.price, 0);
+
+  return (
+    <AnimatePresence>
+      {product && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-chocolate/50 backdrop-blur-sm z-40"
+            onClick={handleClose}
+          />
+
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-md mx-auto
+              bg-cream rounded-3xl shadow-2xl overflow-hidden"
+          >
+            {/* Header */}
+            <div className="bg-chocolate px-6 py-5 flex items-start justify-between">
+              <div>
+                <p className="text-gold text-xs font-medium tracking-widest uppercase mb-1">
+                  Personalize
+                </p>
+                <h2 className="text-cream font-display text-xl font-semibold">
+                  {product.emoji} {product.name}
+                </h2>
+                <p className="text-cream/60 text-sm mt-0.5">
+                  Adicione extras ao seu pedido
+                </p>
+              </div>
+              <button
+                onClick={handleClose}
+                className="text-cream/60 hover:text-cream transition-colors mt-0.5"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Additionals List */}
+            <div className="px-6 py-4 max-h-72 overflow-y-auto">
+              <div className="space-y-2">
+                {additionals.map((additional) => {
+                  const isSelected = selected.has(additional.id);
+                  return (
+                    <button
+                      key={additional.id}
+                      onClick={() => toggle(additional.id)}
+                      className={`
+                        w-full flex items-center gap-4 p-3 rounded-xl border-2 transition-all duration-200 text-left
+                        ${
+                          isSelected
+                            ? "border-gold bg-gold/10"
+                            : "border-chocolate/10 bg-white hover:border-chocolate/20"
+                        }
+                      `}
+                    >
+                      <span className="text-2xl">{additional.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-chocolate text-sm">
+                          {additional.name}
+                        </p>
+                        <p className="text-xs text-chocolate/50 truncate">
+                          {additional.description}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-display font-semibold text-chocolate tabular-nums text-sm">
+                          +R${" "}
+                          {additional.price.toLocaleString("pt-BR", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                        <div
+                          className={`
+                            w-5 h-5 rounded-full flex items-center justify-center border-2 flex-shrink-0
+                            ${
+                              isSelected
+                                ? "bg-gold border-gold text-white"
+                                : "border-chocolate/20"
+                            }
+                          `}
+                        >
+                          {isSelected && <Check size={11} strokeWidth={3} />}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 pb-6 pt-3 border-t border-chocolate/10">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-xs text-chocolate/50">Total</p>
+                  <p className="font-display font-bold text-xl text-chocolate tabular-nums">
+                    R${" "}
+                    {(product.price + totalAdditionals).toLocaleString(
+                      "pt-BR",
+                      { minimumFractionDigits: 2 }
+                    )}
+                  </p>
+                </div>
+                <p className="text-xs text-chocolate/40">
+                  {selected.size > 0
+                    ? `${selected.size} extra${selected.size > 1 ? "s" : ""} selecionado${selected.size > 1 ? "s" : ""}`
+                    : "Sem extras"}
+                </p>
+              </div>
+
+              <button
+                onClick={handleConfirm}
+                className="w-full bg-chocolate text-cream py-3.5 rounded-xl font-semibold
+                  hover:bg-chocolate-light transition-all duration-200 hover:shadow-lg hover:shadow-chocolate/20
+                  active:scale-[0.98]"
+              >
+                Adicionar ao Carrinho
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
