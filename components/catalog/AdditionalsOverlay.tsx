@@ -4,24 +4,21 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check } from "lucide-react";
 import { Product } from "@/types";
-import { products } from "@/data/mock";
 
 interface AdditionalsOverlayProps {
   product: Product | null;
+  additionals: Product[];
   onConfirm: (product: Product, additionals: Product[]) => void;
   onClose: () => void;
 }
 
 export function AdditionalsOverlay({
   product,
+  additionals,
   onConfirm,
   onClose,
 }: AdditionalsOverlayProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
-
-  const additionals = products.filter(
-    (p) => p.category === "Adicional" && p.status === "active"
-  );
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -57,7 +54,7 @@ export function AdditionalsOverlay({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-chocolate/50 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-burgundy/50 backdrop-blur-sm z-40"
             onClick={handleClose}
           />
 
@@ -71,9 +68,9 @@ export function AdditionalsOverlay({
               bg-cream rounded-3xl shadow-2xl overflow-hidden"
           >
             {/* Header */}
-            <div className="bg-chocolate px-6 py-5 flex items-start justify-between">
+            <div className="bg-burgundy px-6 py-5 flex items-start justify-between">
               <div>
-                <p className="text-gold text-xs font-medium tracking-widest uppercase mb-1">
+                <p className="text-rose text-xs font-medium tracking-widest uppercase mb-1">
                   Personalize
                 </p>
                 <h2 className="text-cream font-display text-xl font-semibold">
@@ -104,22 +101,22 @@ export function AdditionalsOverlay({
                         w-full flex items-center gap-4 p-3 rounded-xl border-2 transition-all duration-200 text-left
                         ${
                           isSelected
-                            ? "border-gold bg-gold/10"
-                            : "border-chocolate/10 bg-white hover:border-chocolate/20"
+                            ? "border-rose bg-rose/10"
+                            : "border-burgundy/10 bg-white hover:border-burgundy/20"
                         }
                       `}
                     >
                       <span className="text-2xl">{additional.emoji}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-chocolate text-sm">
+                        <p className="font-medium text-burgundy text-sm">
                           {additional.name}
                         </p>
-                        <p className="text-xs text-chocolate/50 truncate">
+                        <p className="text-xs text-burgundy/50 truncate">
                           {additional.description}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-display font-semibold text-chocolate tabular-nums text-sm">
+                        <span className="font-display font-semibold text-burgundy tabular-nums text-sm">
                           +R${" "}
                           {additional.price.toLocaleString("pt-BR", {
                             minimumFractionDigits: 2,
@@ -130,8 +127,8 @@ export function AdditionalsOverlay({
                             w-5 h-5 rounded-full flex items-center justify-center border-2 flex-shrink-0
                             ${
                               isSelected
-                                ? "bg-gold border-gold text-white"
-                                : "border-chocolate/20"
+                                ? "bg-rose border-rose text-white"
+                                : "border-burgundy/20"
                             }
                           `}
                         >
@@ -145,11 +142,11 @@ export function AdditionalsOverlay({
             </div>
 
             {/* Footer */}
-            <div className="px-6 pb-6 pt-3 border-t border-chocolate/10">
+            <div className="px-6 pb-6 pt-3 border-t border-burgundy/10">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-xs text-chocolate/50">Total</p>
-                  <p className="font-display font-bold text-xl text-chocolate tabular-nums">
+                  <p className="text-xs text-burgundy/50">Total</p>
+                  <p className="font-display font-bold text-xl text-burgundy tabular-nums">
                     R${" "}
                     {(product.price + totalAdditionals).toLocaleString(
                       "pt-BR",
@@ -157,7 +154,7 @@ export function AdditionalsOverlay({
                     )}
                   </p>
                 </div>
-                <p className="text-xs text-chocolate/40">
+                <p className="text-xs text-burgundy/40">
                   {selected.size > 0
                     ? `${selected.size} extra${selected.size > 1 ? "s" : ""} selecionado${selected.size > 1 ? "s" : ""}`
                     : "Sem extras"}
@@ -166,8 +163,8 @@ export function AdditionalsOverlay({
 
               <button
                 onClick={handleConfirm}
-                className="w-full bg-chocolate text-cream py-3.5 rounded-xl font-semibold
-                  hover:bg-chocolate-light transition-all duration-200 hover:shadow-lg hover:shadow-chocolate/20
+                className="w-full bg-burgundy text-cream py-3.5 rounded-xl font-semibold
+                  hover:bg-burgundy-light transition-all duration-200 hover:shadow-lg hover:shadow-burgundy/20
                   active:scale-[0.98]"
               >
                 Adicionar ao Carrinho

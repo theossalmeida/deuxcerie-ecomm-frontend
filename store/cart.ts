@@ -4,10 +4,16 @@ import { CartItem, Product } from "@/types";
 interface CartStore {
   items: CartItem[];
   isOpen: boolean;
+  observation: string;
   addItem: (product: Product, additionals?: Product[]) => void;
   removeItem: (cartItemId: string) => void;
   updateQuantity: (cartItemId: string, delta: number) => void;
   removeAdditional: (cartItemId: string, additionalId: string) => void;
+  addPhoto: (cartItemId: string, file: File) => void;
+  removePhoto: (cartItemId: string, index: number) => void;
+  setItemObservation: (cartItemId: string, text: string) => void;
+  setObservation: (text: string) => void;
+  clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
   total: () => number;
@@ -17,11 +23,12 @@ interface CartStore {
 export const useCartStore = create<CartStore>((set, get) => ({
   items: [],
   isOpen: false,
+  observation: "",
 
   addItem: (product, additionals = []) => {
     const id = `${product.id}-${Date.now()}`;
     set((state) => ({
-      items: [...state.items, { id, product, quantity: 1, additionals }],
+      items: [...state.items, { id, product, quantity: 1, additionals, photos: [], observation: "" }],
       isOpen: true,
     }));
   },
@@ -48,15 +55,43 @@ export const useCartStore = create<CartStore>((set, get) => ({
     set((state) => ({
       items: state.items.map((item) =>
         item.id === cartItemId
-          ? {
-              ...item,
-              additionals: item.additionals.filter((a) => a.id !== additionalId),
-            }
+          ? { ...item, additionals: item.additionals.filter((a) => a.id !== additionalId) }
           : item
       ),
     }));
   },
 
+  addPhoto: (cartItemId, file) => {
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === cartItemId && item.photos.length < 3
+          ? { ...item, photos: [...item.photos, file] }
+          : item
+      ),
+    }));
+  },
+
+  removePhoto: (cartItemId, index) => {
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === cartItemId
+          ? { ...item, photos: item.photos.filter((_, i) => i !== index) }
+          : item
+      ),
+    }));
+  },
+
+  setItemObservation: (cartItemId, text) => {
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === cartItemId ? { ...item, observation: text.slice(0, 500) } : item
+      ),
+    }));
+  },
+
+  setObservation: (text) => set({ observation: text.slice(0, 500) }),
+
+  clearCart: () => set({ items: [], observation: "" }),
   openCart: () => set({ isOpen: true }),
   closeCart: () => set({ isOpen: false }),
 

@@ -11,10 +11,10 @@ export function CartButton() {
   return (
     <button
       onClick={openCart}
-      className="fixed bottom-6 right-6 z-30 bg-chocolate text-cream
-        w-14 h-14 rounded-full shadow-2xl shadow-chocolate/40
+      className="fixed bottom-6 right-6 z-30 bg-burgundy text-cream
+        w-14 h-14 rounded-full shadow-2xl shadow-burgundy/40
         flex items-center justify-center
-        hover:bg-chocolate-light transition-all duration-200
+        hover:bg-burgundy-light transition-all duration-200
         hover:scale-110 active:scale-95"
       aria-label={`Carrinho com ${count} itens`}
     >
@@ -27,7 +27,7 @@ export function CartButton() {
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
             transition={{ type: "spring", damping: 15, stiffness: 400 }}
-            className="absolute -top-1.5 -right-1.5 bg-gold text-chocolate-dark
+            className="absolute -top-1.5 -right-1.5 bg-rose text-cream
               text-xs font-bold min-w-[20px] h-5 rounded-full
               flex items-center justify-center px-1.5 tabular-nums"
           >

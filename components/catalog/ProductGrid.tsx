@@ -1,17 +1,17 @@
 "use client";
 
-import { Product } from "@/types";
+import { GroupedProduct, Product } from "@/types";
 import { ProductCard } from "./ProductCard";
 
 interface ProductGridProps {
-  products: Product[];
+  groups: GroupedProduct[];
   onAdd: (product: Product) => void;
 }
 
-export function ProductGrid({ products, onAdd }: ProductGridProps) {
-  if (products.length === 0) {
+export function ProductGrid({ groups, onAdd }: ProductGridProps) {
+  if (groups.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-chocolate/40">
+      <div className="flex flex-col items-center justify-center py-24 text-burgundy/40">
         <span className="text-5xl mb-4">🎂</span>
         <p className="text-lg">Nenhum produto encontrado</p>
       </div>
@@ -20,8 +20,8 @@ export function ProductGrid({ products, onAdd }: ProductGridProps) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} onAdd={onAdd} />
+      {groups.map((group) => (
+        <ProductCard key={group.name} group={group} onAdd={onAdd} />
       ))}
     </div>
   );

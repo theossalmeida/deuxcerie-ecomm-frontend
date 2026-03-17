@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Deuxcerie — Pâtisserie Artesanal",
+  title: "Deuxcerie — Doces que Marcam Memorias",
   description: "Tortas e bolos artesanais feitos com amor e ingredientes premium.",
 };
 

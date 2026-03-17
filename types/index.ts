@@ -1,4 +1,4 @@
-export type Category = 'Torta' | 'Bolo' | 'Adicional';
+export type Category = 'torta' | 'bolo' | 'adicional';
 
 export interface Product {
   id: string;
@@ -9,6 +9,15 @@ export interface Product {
   status: 'active' | 'inactive';
   imageUrl?: string;
   emoji?: string;
+  size?: string;
+}
+
+export interface GroupedProduct {
+  name: string;
+  description: string;
+  category: Category;
+  emoji?: string;
+  variants: Product[];
 }
 
 export interface CartItem {
@@ -16,4 +25,6 @@ export interface CartItem {
   product: Product;
   quantity: number;
   additionals: Product[];
+  photos: File[]; // max 3, only for torta/bolo
+  observation: string;
 }

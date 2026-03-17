@@ -1,31 +1,81 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Product } from "@/types";
-import { products } from "@/data/mock";
+import { useState, useMemo, useEffect } from "react";
+import Image from "next/image";
+import { Product, GroupedProduct } from "@/types";
+import { fetchProducts } from "@/lib/api";
 import { useCartStore } from "@/store/cart";
 import { CategoryTabs } from "@/components/catalog/CategoryTabs";
 import { ProductGrid } from "@/components/catalog/ProductGrid";
 import { AdditionalsOverlay } from "@/components/catalog/AdditionalsOverlay";
 import { CartSidebar } from "@/components/cart/CartSidebar";
 import { CartButton } from "@/components/cart/CartButton";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 
 export default function HomePage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("Todos");
   const [overlayProduct, setOverlayProduct] = useState<Product | null>(null);
   const { addItem } = useCartStore();
 
-  const visibleProducts = useMemo(() => {
-    const active = products.filter(
-      (p) => p.status === "active" && p.category !== "Adicional"
-    );
-    if (activeCategory === "Todos") return active;
-    return active.filter((p) => p.category === activeCategory);
-  }, [activeCategory]);
+  useEffect(() => {
+    fetchProducts()
+      .then(setProducts)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const HIDDEN_CATEGORIES = ["outros adicionais"];
+
+  const categories = useMemo(() => {
+    const seen = new Set<string>();
+    for (const p of products) {
+      if (
+        p.status === "active" &&
+        p.category !== "adicional" &&
+        !HIDDEN_CATEGORIES.includes(p.category)
+      ) seen.add(p.category);
+    }
+    return Array.from(seen);
+  }, [products]);
+
+  const additionals = useMemo(
+    () => products.filter(
+      (p) => p.status === "active" && p.category === "adicional" && !HIDDEN_CATEGORIES.includes(p.category)
+    ),
+    [products]
+  );
+
+  const filteredAdditionals = useMemo(() => {
+    if (!overlayProduct) return additionals;
+    return additionals.filter((a) => {
+      if (!a.size) return true;
+      if (a.size.toLowerCase() === "u") return true;
+      return !!overlayProduct.size && a.size.includes(overlayProduct.size);
+    });
+  }, [additionals, overlayProduct]);
+
+  const visibleGroups = useMemo(() => {
+    const map = new Map<string, GroupedProduct>();
+    for (const p of products) {
+      if (p.status !== "active" || p.category === "adicional" || HIDDEN_CATEGORIES.includes(p.category)) continue;
+      if (activeCategory !== "Todos" && p.category !== activeCategory) continue;
+      if (!map.has(p.name)) {
+        map.set(p.name, {
+          name: p.name,
+          description: p.description,
+          category: p.category,
+          emoji: p.emoji,
+          variants: [],
+        });
+      }
+      map.get(p.name)!.variants.push(p);
+    }
+    return Array.from(map.values());
+  }, [products, activeCategory]);
 
   const handleAddProduct = (product: Product) => {
-    const isCake =
-      product.category === "Torta" || product.category === "Bolo";
+    const isCake = product.category === "torta" || product.category === "bolo";
     if (isCake) {
       setOverlayProduct(product);
     } else {
@@ -33,27 +83,24 @@ export default function HomePage() {
     }
   };
 
-  const handleConfirmAdditionals = (
-    product: Product,
-    additionals: Product[]
-  ) => {
-    addItem(product, additionals);
+  const handleConfirmAdditionals = (product: Product, selected: Product[]) => {
+    addItem(product, selected);
     setOverlayProduct(null);
   };
 
   return (
     <>
       {/* Header */}
-      <header className="bg-chocolate sticky top-0 z-20 shadow-lg">
+      <header className="bg-burgundy sticky top-0 z-20 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-cream text-2xl font-bold tracking-wide">
-              Deuxcerie
-            </h1>
-            <p className="text-gold text-xs tracking-widest uppercase">
-              Pâtisserie Artesanal
-            </p>
-          </div>
+          <Image
+            src="/images/logo-horizontal.png"
+            alt="Deuxcerie"
+            width={160}
+            height={48}
+            className="h-10 w-auto object-contain"
+            priority
+          />
           <div className="text-cream/40 text-sm hidden sm:block">
             Feito com amor ✦
           </div>
@@ -61,45 +108,55 @@ export default function HomePage() {
       </header>
 
       {/* Hero */}
-      <section className="bg-gradient-to-b from-chocolate to-chocolate-light py-14 px-4 text-center">
-        <p className="text-gold text-sm tracking-widest uppercase mb-3 font-medium">
+      <section className="bg-gradient-to-b from-burgundy to-burgundy-light py-14 px-4 text-center">
+        <p className="text-rose text-sm tracking-widest uppercase mb-3 font-medium">
           Bem-vindo à
         </p>
         <h2 className="font-display text-cream text-4xl sm:text-5xl font-bold mb-4 leading-tight">
-          Pâtisserie Deuxcerie
+          Deuxcerie
         </h2>
         <p className="text-cream/60 text-lg max-w-md mx-auto leading-relaxed">
-          Tortas e bolos artesanais com ingredientes premium, feitos com amor
-          para momentos especiais.
+          Doces que marcam memórias — tortas e bolos artesanais com ingredientes
+          premium, feitos com amor para momentos especiais.
         </p>
       </section>
 
       {/* Catalog */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-        {/* Category Filter */}
         <div className="mb-8">
-          <h2 className="font-display text-chocolate text-2xl font-semibold mb-4">
+          <h2 className="font-display text-burgundy text-2xl font-semibold mb-4">
             Nosso Catálogo
           </h2>
-          <CategoryTabs active={activeCategory} onChange={setActiveCategory} />
+          <CategoryTabs
+            active={activeCategory}
+            onChange={setActiveCategory}
+            categories={categories}
+          />
         </div>
 
-        {/* Product Grid */}
-        <ProductGrid products={visibleProducts} onAdd={handleAddProduct} />
+        {loading ? (
+          <div className="flex items-center justify-center py-24 text-burgundy/40">
+            <span className="text-lg">Carregando...</span>
+          </div>
+        ) : (
+          <ProductGrid groups={visibleGroups} onAdd={handleAddProduct} />
+        )}
       </main>
 
       {/* Footer */}
-      <footer className="bg-chocolate-dark text-cream/40 text-sm text-center py-8 mt-16">
-        <p>© 2024 Deuxcerie — Pâtisserie Artesanal. Feito com amor.</p>
+      <footer className="bg-burgundy-dark text-cream/40 text-sm text-center py-8 mt-16">
+        <p>© 2026 Deuxcerie — Doces que Marcam Memórias.</p>
       </footer>
 
       {/* Cart Components */}
+      <WhatsAppButton />
       <CartButton />
       <CartSidebar />
 
       {/* Additionals Overlay */}
       <AdditionalsOverlay
         product={overlayProduct}
+        additionals={filteredAdditionals}
         onConfirm={handleConfirmAdditionals}
         onClose={() => setOverlayProduct(null)}
       />

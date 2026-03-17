@@ -3,11 +3,15 @@
 interface CategoryTabsProps {
   active: string;
   onChange: (cat: string) => void;
+  categories: string[];
 }
 
-const tabs = ["Todos", "Torta", "Bolo"];
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
-export function CategoryTabs({ active, onChange }: CategoryTabsProps) {
+export function CategoryTabs({ active, onChange, categories }: CategoryTabsProps) {
+  const tabs = ["Todos", ...categories];
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
       {tabs.map((tab) => (
@@ -19,12 +23,12 @@ export function CategoryTabs({ active, onChange }: CategoryTabsProps) {
             transition-all duration-200
             ${
               active === tab
-                ? "bg-chocolate text-cream shadow-md scale-105"
-                : "bg-white text-chocolate border border-chocolate/20 hover:border-chocolate/50 hover:bg-chocolate/5"
+                ? "bg-burgundy text-cream shadow-md scale-105"
+                : "bg-white text-burgundy border border-burgundy/20 hover:border-burgundy/50 hover:bg-burgundy/5"
             }
           `}
         >
-          {tab}
+          {tab === "Todos" ? tab : capitalize(tab)}
         </button>
       ))}
     </div>

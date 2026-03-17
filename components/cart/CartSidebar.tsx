@@ -1,14 +1,54 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ShoppingBag } from "lucide-react";
+import { X, ShoppingBag, CheckCircle } from "lucide-react";
 import { useCartStore } from "@/store/cart";
+import { submitOrder } from "@/lib/api";
 import { CartItemRow } from "./CartItem";
 
 export function CartSidebar() {
-  const { isOpen, closeCart, items, total, itemCount } = useCartStore();
+  const { isOpen, closeCart, items, total, itemCount, clearCart } = useCartStore();
   const count = itemCount();
   const totalValue = total();
+
+  const [clientName, setClientName] = useState("");
+  const [clientMobile, setClientMobile] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
+
+  const minDate = new Date();
+  minDate.setDate(minDate.getDate() + 2);
+  const minDateStr = minDate.toISOString().split("T")[0];
+
+  const canSubmit = clientName.trim() && clientMobile.trim() && deliveryDate && items.length > 0;
+
+  async function handleSubmit() {
+    if (!canSubmit) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const result = await submitOrder({ clientName, clientMobile, deliveryDate, items });
+      setOrderId(result.orderId);
+      clearCart();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Erro ao enviar pedido");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function handleClose() {
+    closeCart();
+    if (orderId) {
+      setOrderId(null);
+      setClientName("");
+      setClientMobile("");
+      setDeliveryDate("");
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -19,7 +59,7 @@ export function CartSidebar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-chocolate/40 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-burgundy/40 backdrop-blur-sm z-40"
             onClick={closeCart}
           />
 
@@ -33,9 +73,9 @@ export function CartSidebar() {
               flex flex-col shadow-2xl"
           >
             {/* Header */}
-            <div className="bg-chocolate px-6 py-5 flex items-center justify-between">
+            <div className="bg-burgundy px-6 py-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <ShoppingBag className="text-gold" size={22} />
+                <ShoppingBag className="text-rose" size={22} />
                 <div>
                   <h2 className="text-cream font-display font-semibold text-lg">
                     Seu Pedido
@@ -46,7 +86,7 @@ export function CartSidebar() {
                 </div>
               </div>
               <button
-                onClick={closeCart}
+                onClick={handleClose}
                 className="text-cream/60 hover:text-cream transition-colors"
               >
                 <X size={20} />
@@ -56,7 +96,7 @@ export function CartSidebar() {
             {/* Items */}
             <div className="flex-1 overflow-y-auto px-6 py-2">
               {items.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-chocolate/30 py-16">
+                <div className="flex flex-col items-center justify-center h-full text-burgundy/30 py-16">
                   <span className="text-5xl mb-4">🛒</span>
                   <p className="text-base">Carrinho vazio</p>
                   <p className="text-sm mt-1">
@@ -70,14 +110,63 @@ export function CartSidebar() {
               )}
             </div>
 
+            {/* Success state */}
+            {orderId && (
+              <div className="px-6 py-10 flex flex-col items-center justify-center text-center gap-3">
+                <CheckCircle className="text-rose" size={48} />
+                <h3 className="font-display text-burgundy font-semibold text-xl">Pedido recebido!</h3>
+                <p className="text-burgundy/60 text-sm">Seu pedido foi enviado com sucesso.</p>
+                <p className="text-burgundy/40 text-xs font-mono break-all">{orderId}</p>
+                <button
+                  onClick={handleClose}
+                  className="mt-2 text-sm text-burgundy/50 underline underline-offset-2"
+                >
+                  Fechar
+                </button>
+              </div>
+            )}
+
             {/* Footer */}
-            {items.length > 0 && (
-              <div className="px-6 py-5 border-t border-chocolate/10 bg-white/50">
+            {!orderId && items.length > 0 && (
+              <div className="px-6 py-5 border-t border-burgundy/10 bg-white/50">
+                {/* Customer info */}
+                <div className="space-y-2 mb-4">
+                  <input
+                    type="text"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    placeholder="Seu nome"
+                    className="w-full text-xs text-burgundy bg-white border border-burgundy/15 rounded-xl
+                      px-3 py-2.5 placeholder:text-burgundy/25
+                      focus:outline-none focus:border-burgundy/40 transition-colors"
+                  />
+                  <input
+                    type="tel"
+                    value={clientMobile}
+                    onChange={(e) => setClientMobile(e.target.value)}
+                    placeholder="WhatsApp (ex: 11999999999)"
+                    className="w-full text-xs text-burgundy bg-white border border-burgundy/15 rounded-xl
+                      px-3 py-2.5 placeholder:text-burgundy/25
+                      focus:outline-none focus:border-burgundy/40 transition-colors"
+                  />
+                  <div>
+                    <label className="text-xs font-medium text-burgundy/50 mb-1 block">
+                      Data de entrega
+                    </label>
+                    <input
+                      type="date"
+                      value={deliveryDate}
+                      onChange={(e) => setDeliveryDate(e.target.value)}
+                      min={minDateStr}
+                      className="w-full text-xs text-burgundy bg-white border border-burgundy/15 rounded-xl
+                        px-3 py-2.5 focus:outline-none focus:border-burgundy/40 transition-colors"
+                    />
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-chocolate/60 font-medium">
-                    Subtotal
-                  </span>
-                  <span className="font-display font-bold text-2xl text-chocolate tabular-nums">
+                  <span className="text-burgundy/60 font-medium">Subtotal</span>
+                  <span className="font-display font-bold text-2xl text-burgundy tabular-nums">
                     R${" "}
                     {totalValue.toLocaleString("pt-BR", {
                       minimumFractionDigits: 2,
@@ -85,17 +174,20 @@ export function CartSidebar() {
                   </span>
                 </div>
 
-                <button
-                  disabled
-                  className="w-full bg-gold text-chocolate-dark py-4 rounded-xl font-bold text-base
-                    opacity-75 cursor-not-allowed"
-                >
-                  Finalizar Pedido — Em breve
-                </button>
+                {submitError && (
+                  <p className="text-xs text-red-600 mb-3 bg-red-50 rounded-lg px-3 py-2">
+                    {submitError}
+                  </p>
+                )}
 
-                <p className="text-center text-xs text-chocolate/30 mt-2">
-                  Checkout disponível em breve
-                </p>
+                <button
+                  onClick={handleSubmit}
+                  disabled={!canSubmit || isSubmitting}
+                  className="w-full bg-rose text-cream py-4 rounded-xl font-bold text-base
+                    transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? "Enviando..." : "Finalizar Pedido"}
+                </button>
               </div>
             )}
           </motion.aside>
