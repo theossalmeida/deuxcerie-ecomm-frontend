@@ -43,7 +43,7 @@ export function AdditionalsOverlay({
 
   const totalAdditionals = additionals
     .filter((a) => selected.has(a.id))
-    .reduce((s, a) => s + a.price, 0);
+    .reduce((s, a) => s + a.pixPrice, 0);
 
   return (
     <AnimatePresence>
@@ -116,12 +116,17 @@ export function AdditionalsOverlay({
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-display font-semibold text-burgundy tabular-nums text-sm">
-                          +R${" "}
-                          {additional.price.toLocaleString("pt-BR", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-display font-semibold text-burgundy tabular-nums text-sm">
+                            +R${" "}
+                            {(additional.pixPrice / 100).toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                            })}
+                          </span>
+                          <span className="text-[9px] font-semibold bg-gold/40 text-burgundy px-1 py-0.5 rounded">
+                            PIX
+                          </span>
+                        </div>
                         <div
                           className={`
                             w-5 h-5 rounded-full flex items-center justify-center border-2 flex-shrink-0
@@ -146,13 +151,18 @@ export function AdditionalsOverlay({
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-xs text-burgundy/50">Total</p>
-                  <p className="font-display font-bold text-xl text-burgundy tabular-nums">
-                    R${" "}
-                    {(product.price + totalAdditionals).toLocaleString(
-                      "pt-BR",
-                      { minimumFractionDigits: 2 }
-                    )}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-display font-bold text-xl text-burgundy tabular-nums">
+                      R${" "}
+                      {((product.pixPrice + totalAdditionals) / 100).toLocaleString(
+                        "pt-BR",
+                        { minimumFractionDigits: 2 }
+                      )}
+                    </p>
+                    <span className="text-[10px] font-semibold bg-gold/40 text-burgundy px-1.5 py-0.5 rounded-md">
+                      PIX
+                    </span>
+                  </div>
                 </div>
                 <p className="text-xs text-burgundy/40">
                   {selected.size > 0

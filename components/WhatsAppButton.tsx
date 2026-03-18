@@ -3,7 +3,7 @@
 export function WhatsAppButton() {
   return (
     <a
-      href="https://wa.me/5521998864321"
+      href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "5521998864321"}`}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Falar no WhatsApp"

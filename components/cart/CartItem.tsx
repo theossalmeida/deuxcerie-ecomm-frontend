@@ -2,37 +2,54 @@
 
 import { useRef, useEffect, useState } from "react";
 import { Minus, Plus, X, ImagePlus } from "lucide-react";
-import { CartItem as CartItemType } from "@/types";
+import { CartItem as CartItemType, PaymentMethod } from "@/types";
 import { useCartStore } from "@/store/cart";
 
 interface CartItemProps {
   item: CartItemType;
+  paymentMethod: PaymentMethod | null;
 }
 
-export function CartItemRow({ item }: CartItemProps) {
-  const { updateQuantity, removeItem, removeAdditional, addPhoto, removePhoto, setItemObservation } =
+export function CartItemRow({ item, paymentMethod }: CartItemProps) {
+  const { updateQuantity, removeItem, removeAdditional, addPhoto, removePhoto, setItemObservation, setItemMassa, setItemSabor } =
     useCartStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previews, setPreviews] = useState<string[]>([]);
 
   const isMajorItem = item.product.category !== "adicional";
+  const isBolo = item.product.category === "bolo";
 
   useEffect(() => {
+    let cancelled = false;
     const urls = item.photos.map((f) => URL.createObjectURL(f));
-    setPreviews(urls);
-    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+    if (!cancelled) setPreviews(urls);
+    return () => {
+      cancelled = true;
+      urls.forEach(URL.revokeObjectURL);
+    };
   }, [item.photos]);
+
+  const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && item.photos.length < 3) {
+    if (!file) return;
+    if (!ALLOWED_TYPES.has(file.type)) return;
+    if (file.size > MAX_FILE_SIZE) return;
+    if (item.photos.length < 3) {
       addPhoto(item.id, file);
     }
     e.target.value = "";
   };
 
-  const additionalsTotal = item.additionals.reduce((s, a) => s + a.price, 0);
-  const lineTotal = (item.product.price + additionalsTotal) * item.quantity;
+  const fmt = (cents: number) =>
+    (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+  const pick = (p: { pixPrice: number; cardPrice: number }) =>
+    paymentMethod === "CARD" ? p.cardPrice : p.pixPrice;
+
+  const additionalsTotal = item.additionals.reduce((s, a) => s + pick(a), 0);
+  const lineTotal = (pick(item.product) + additionalsTotal) * item.quantity;
 
   return (
     <div className="py-4 border-b border-burgundy/10 last:border-0">
@@ -57,12 +74,20 @@ export function CartItemRow({ item }: CartItemProps) {
             </button>
           </div>
 
-          <p className="font-display text-burgundy/70 text-sm tabular-nums mt-0.5">
-            R${" "}
-            {item.product.price.toLocaleString("pt-BR", {
-              minimumFractionDigits: 2,
-            })}
-          </p>
+          {paymentMethod === "CARD" ? (
+            <p className="font-display text-burgundy/70 text-sm tabular-nums mt-0.5">
+              R$ {fmt(item.product.cardPrice)}
+            </p>
+          ) : (
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="font-display text-burgundy/70 text-sm tabular-nums">
+                R$ {fmt(item.product.pixPrice)}
+              </p>
+              <p className="font-display text-burgundy/30 text-xs tabular-nums line-through">
+                R$ {fmt(item.product.cardPrice)}
+              </p>
+            </div>
+          )}
 
           {/* Qty controls */}
           <div className="flex items-center gap-2 mt-2">
@@ -82,8 +107,7 @@ export function CartItemRow({ item }: CartItemProps) {
               <Plus size={12} />
             </button>
             <span className="ml-auto font-display font-bold text-burgundy tabular-nums text-sm">
-              R${" "}
-              {lineTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              R$ {fmt(lineTotal)}
             </span>
           </div>
         </div>
@@ -100,10 +124,7 @@ export function CartItemRow({ item }: CartItemProps) {
               <span>{additional.emoji}</span>
               <span className="flex-1">{additional.name}</span>
               <span className="font-display tabular-nums">
-                +R${" "}
-                {additional.price.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
+                +R$ {fmt(pick(additional))}
               </span>
               <button
                 onClick={() => removeAdditional(item.id, additional.id)}
@@ -116,13 +137,37 @@ export function CartItemRow({ item }: CartItemProps) {
         </div>
       )}
 
+      {/* Massa & Sabor — bolo only, mandatory */}
+      {isBolo && (
+        <div className="ml-10 mt-3 space-y-2">
+          <input
+            type="text"
+            value={item.massa}
+            onChange={(e) => setItemMassa(item.id, e.target.value)}
+            placeholder="Qual a massa do seu bolo (Baunilha, Cacau...)?"
+            className="w-full text-xs text-burgundy placeholder:text-burgundy/30 bg-burgundy/5
+              rounded-lg px-3 py-2 border border-burgundy/10
+              focus:outline-none focus:border-burgundy/30 transition-colors"
+          />
+          <input
+            type="text"
+            value={item.sabor}
+            onChange={(e) => setItemSabor(item.id, e.target.value)}
+            placeholder="Qual o sabor do recheio?"
+            className="w-full text-xs text-burgundy placeholder:text-burgundy/30 bg-burgundy/5
+              rounded-lg px-3 py-2 border border-burgundy/10
+              focus:outline-none focus:border-burgundy/30 transition-colors"
+          />
+        </div>
+      )}
+
       {/* Observation — major items only */}
       {isMajorItem && (
         <div className="ml-10 mt-3">
           <textarea
             value={item.observation}
             onChange={(e) => setItemObservation(item.id, e.target.value)}
-            placeholder="Deixe aqui o seu sabor escolhido, o que deseja que tenha no bolo e as referências..."
+            placeholder="Deixe aqui o seu o que deseja que tenha no bolo, referências..."
             maxLength={500}
             rows={3}
             className="w-full text-xs text-burgundy placeholder:text-burgundy/30 bg-burgundy/5

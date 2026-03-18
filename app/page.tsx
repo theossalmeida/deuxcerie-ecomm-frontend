@@ -11,6 +11,7 @@ import { AdditionalsOverlay } from "@/components/catalog/AdditionalsOverlay";
 import { CartSidebar } from "@/components/cart/CartSidebar";
 import { CartButton } from "@/components/cart/CartButton";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { LoadingVideo } from "@/components/LoadingVideo";
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -102,22 +103,21 @@ export default function HomePage() {
             priority
           />
           <div className="text-cream/40 text-sm hidden sm:block">
-            Feito com amor ✦
+            Feito com amor
           </div>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="bg-gradient-to-b from-burgundy to-burgundy-light py-14 px-4 text-center">
-        <p className="text-rose text-sm tracking-widest uppercase mb-3 font-medium">
+      <section className="bg-gradient-to-b from-burgundy to-burgundy-light py-6 px-4 text-center">
+        <p className="text-rose text-xs tracking-widest uppercase font-medium">
           Bem-vindo à
         </p>
-        <h2 className="font-display text-cream text-4xl sm:text-5xl font-bold mb-4 leading-tight">
+        <h2 className="font-display text-cream text-2xl sm:text-3xl font-bold leading-tight">
           Deuxcerie
         </h2>
-        <p className="text-cream/60 text-lg max-w-md mx-auto leading-relaxed">
-          Doces que marcam memórias — tortas e bolos artesanais com ingredientes
-          premium, feitos com amor para momentos especiais.
+        <p className="text-cream/50 text-sm max-w-sm mx-auto mt-1">
+          Tortas e bolos artesanais feitos com amor.
         </p>
       </section>
 
@@ -135,8 +135,8 @@ export default function HomePage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-24 text-burgundy/40">
-            <span className="text-lg">Carregando...</span>
+          <div className="flex items-center justify-center py-24">
+            <LoadingVideo size={120} />
           </div>
         ) : (
           <ProductGrid groups={visibleGroups} onAdd={handleAddProduct} />

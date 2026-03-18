@@ -12,6 +12,8 @@ interface CartStore {
   addPhoto: (cartItemId: string, file: File) => void;
   removePhoto: (cartItemId: string, index: number) => void;
   setItemObservation: (cartItemId: string, text: string) => void;
+  setItemMassa: (cartItemId: string, text: string) => void;
+  setItemSabor: (cartItemId: string, text: string) => void;
   setObservation: (text: string) => void;
   clearCart: () => void;
   openCart: () => void;
@@ -28,7 +30,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
   addItem: (product, additionals = []) => {
     const id = `${product.id}-${Date.now()}`;
     set((state) => ({
-      items: [...state.items, { id, product, quantity: 1, additionals, photos: [], observation: "" }],
+      items: [...state.items, { id, product, quantity: 1, additionals, photos: [], observation: "", massa: "", sabor: "" }],
       isOpen: true,
     }));
   },
@@ -89,17 +91,34 @@ export const useCartStore = create<CartStore>((set, get) => ({
     }));
   },
 
+  setItemMassa: (cartItemId, text) => {
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === cartItemId ? { ...item, massa: text } : item
+      ),
+    }));
+  },
+
+  setItemSabor: (cartItemId, text) => {
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === cartItemId ? { ...item, sabor: text } : item
+      ),
+    }));
+  },
+
   setObservation: (text) => set({ observation: text.slice(0, 500) }),
 
   clearCart: () => set({ items: [], observation: "" }),
   openCart: () => set({ isOpen: true }),
   closeCart: () => set({ isOpen: false }),
 
+  // Returns centavos using pixPrice as reference (for display when no method is selected)
   total: () => {
     const { items } = get();
     return items.reduce((sum, item) => {
-      const additionalsTotal = item.additionals.reduce((s, a) => s + a.price, 0);
-      return sum + (item.product.price + additionalsTotal) * item.quantity;
+      const additionalsTotal = item.additionals.reduce((s, a) => s + a.pixPrice, 0);
+      return sum + (item.product.pixPrice + additionalsTotal) * item.quantity;
     }, 0);
   },
 

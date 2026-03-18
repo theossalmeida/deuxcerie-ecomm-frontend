@@ -13,6 +13,7 @@ function ProductImage({ src, emoji }: { src?: string; emoji?: string }) {
       <img
         src={src}
         alt=""
+        loading="lazy"
         onError={() => setErrored(true)}
         className="absolute inset-0 w-full h-full object-contain"
       />
@@ -93,12 +94,17 @@ export function ProductCard({ group, onAdd }: ProductCardProps) {
         )}
 
         <div className="flex items-center justify-between">
-          <span className="font-display font-bold text-xl text-burgundy tabular-nums">
-            R${" "}
-            {selectedVariant.price.toLocaleString("pt-BR", {
-              minimumFractionDigits: 2,
-            })}
-          </span>
+          <div className="flex flex-col">
+            <span className="font-display font-bold text-xl text-burgundy tabular-nums">
+              R${" "}
+              {(selectedVariant.pixPrice / 100).toLocaleString("pt-BR", {
+                minimumFractionDigits: 2,
+              })}
+            </span>
+            <span className="text-[10px] font-semibold text-burgundy/50 mt-0.5">
+              no PIX
+            </span>
+          </div>
 
           <button
             onClick={() => onAdd(selectedVariant)}

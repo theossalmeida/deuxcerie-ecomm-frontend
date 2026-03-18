@@ -1,11 +1,25 @@
 export type Category = 'torta' | 'bolo' | 'adicional';
 
+export type PaymentMethod = 'PIX' | 'CARD';
+
+export interface OrderResult {
+  sessionId: string;
+  paymentMethod: PaymentMethod;
+  // Card flow
+  checkoutUrl?: string;
+  // PIX flow
+  brCode?: string;
+  brCodeBase64?: string;
+  expiresAt?: string; // ISO 8601
+}
+
 export interface Product {
   id: string;
   name: string;
   description: string;
   category: Category;
-  price: number;
+  pixPrice: number;  // centavos — 5% discount (backend-calculated)
+  cardPrice: number; // centavos — 5% surcharge (backend-calculated)
   status: 'active' | 'inactive';
   imageUrl?: string;
   emoji?: string;
@@ -27,4 +41,6 @@ export interface CartItem {
   additionals: Product[];
   photos: File[]; // max 3, only for torta/bolo
   observation: string;
+  massa: string;  // only for bolo, mandatory
+  sabor: string;  // only for bolo, mandatory
 }
