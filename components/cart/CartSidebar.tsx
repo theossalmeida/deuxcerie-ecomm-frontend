@@ -7,6 +7,7 @@ import { useCartStore } from "@/store/cart";
 import { submitOrder } from "@/lib/api";
 import { CartItemRow } from "./CartItem";
 import { PixPaymentModal } from "./PixPaymentModal";
+import { CardWaitingOverlay } from "./CardWaitingOverlay";
 import type { OrderResult, PaymentMethod } from "@/types";
 
 type PixModalData = Required<
@@ -26,6 +27,7 @@ export function CartSidebar() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pixModalData, setPixModalData] = useState<PixModalData | null>(null);
+  const [cardSessionId, setCardSessionId] = useState<string | null>(null);
 
   // Use Brazil local date (BRT = UTC-3) to avoid showing the wrong minimum
   // when the user is near midnight UTC
@@ -91,8 +93,10 @@ export function CartSidebar() {
           expiresAt: result.expiresAt!,
         });
       } else {
-        clearCart();
-        window.location.href = result.checkoutUrl!;
+        window.open(result.checkoutUrl!, "_blank", "noopener,noreferrer");
+        closeCart();
+        setIsSubmitting(false);
+        setCardSessionId(result.sessionId);
       }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Erro ao enviar pedido");
@@ -323,6 +327,13 @@ export function CartSidebar() {
           brCodeBase64={pixModalData.brCodeBase64}
           expiresAt={pixModalData.expiresAt}
           onClose={() => setPixModalData(null)}
+        />
+      )}
+
+      {cardSessionId && (
+        <CardWaitingOverlay
+          sessionId={cardSessionId}
+          onCancel={() => setCardSessionId(null)}
         />
       )}
     </>
