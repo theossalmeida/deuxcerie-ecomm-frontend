@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { getCheckoutSessionStatus } from "@/lib/api";
 import { LoadingVideo } from "@/components/LoadingVideo";
 
-export default function PaymentReturnPage() {
+function PaymentReturnContent() {
   const router = useRouter();
   const params = useSearchParams();
   const sessionId = params.get("session");
@@ -37,18 +37,15 @@ export default function PaymentReturnPage() {
       }
     }
 
-    // Poll a cada 2 segundos
-    check(); // imediato na montagem
+    check();
     intervalRef.current = setInterval(check, 2000);
 
-    // Desiste após 3 minutos
     timeoutRef.current = setTimeout(() => {
       clearInterval(intervalRef.current!);
       clearTimeout(cancelRef.current!);
       setStatus("timeout");
     }, 3 * 60 * 1000);
 
-    // Mostra opção de cancelar após 10 segundos
     cancelRef.current = setTimeout(() => setShowCancel(true), 10_000);
 
     return () => {
@@ -69,10 +66,7 @@ export default function PaymentReturnPage() {
           Seu pagamento ainda não foi confirmado. Se você pagou, o pedido será
           processado em breve. Entre em contato pelo WhatsApp se precisar de ajuda.
         </p>
-        <a
-          href="/"
-          className="mt-4 text-sm text-burgundy/50 underline underline-offset-2"
-        >
+        <a href="/" className="mt-4 text-sm text-burgundy/50 underline underline-offset-2">
           Voltar para o início
         </a>
       </div>
@@ -98,7 +92,7 @@ export default function PaymentReturnPage() {
 
   return (
     <div className="min-h-screen bg-cream flex flex-col items-center justify-center gap-4">
-      <LoadingVideo size={140} />
+      <LoadingVideo size={220} />
       <div className="text-center">
         <h1 className="font-display text-burgundy text-2xl font-semibold">
           Confirmando pagamento...
@@ -106,13 +100,18 @@ export default function PaymentReturnPage() {
         <p className="text-burgundy/50 text-sm mt-2">Aguarde alguns instantes</p>
       </div>
       {showCancel && (
-        <a
-          href="/"
-          className="mt-2 text-sm text-burgundy/40 underline underline-offset-2"
-        >
+        <a href="/" className="mt-2 text-sm text-burgundy/40 underline underline-offset-2">
           Não finalizou o pagamento? Voltar ao início
         </a>
       )}
     </div>
+  );
+}
+
+export default function PaymentReturnPage() {
+  return (
+    <Suspense>
+      <PaymentReturnContent />
+    </Suspense>
   );
 }

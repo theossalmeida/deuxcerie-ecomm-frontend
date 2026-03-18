@@ -1,0 +1,9 @@
+.next
+node_modules
+.git
+.env
+.env.*
+*.md
+Dockerfile
+.dockerignore
+fly.toml

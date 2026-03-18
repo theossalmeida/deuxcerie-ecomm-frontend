@@ -136,7 +136,7 @@ export default function HomePage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-24">
-            <LoadingVideo size={120} />
+            <LoadingVideo size={200} />
           </div>
         ) : (
           <ProductGrid groups={visibleGroups} onAdd={handleAddProduct} />

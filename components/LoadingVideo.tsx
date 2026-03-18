@@ -10,7 +10,7 @@ export function LoadingVideo({ size = 120 }: LoadingVideoProps) {
       loop
       muted
       playsInline
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, pointerEvents: "none" }}
       className="object-contain"
     />
   );
