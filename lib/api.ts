@@ -57,6 +57,8 @@ export interface OrderPayload {
   email: string;
   taxId: string;
   deliveryDate: string; // ISO date string
+  deliveryType: 'DELIVERY' | 'PICKUP';
+  deliveryAddress?: string; // required when deliveryType === 'DELIVERY'
   items: CartItem[];
   paymentMethod: 'PIX' | 'CARD';
 }
@@ -107,6 +109,10 @@ export async function submitOrder(payload: OrderPayload): Promise<OrderResult> {
     }
   }
 
+  formData.append(
+    "deliveryAddress",
+    payload.deliveryType === "PICKUP" ? "Retirada" : (payload.deliveryAddress ?? "")
+  );
   formData.append("paymentMethod", payload.paymentMethod);
   formData.append("items", JSON.stringify(flatItems));
   for (const { index, files } of photosMap) {

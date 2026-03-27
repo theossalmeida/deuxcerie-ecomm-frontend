@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc:*)",
-      "WebFetch(domain:fly.io)"
+      "WebFetch(domain:fly.io)",
+      "Bash(fly secrets:*)",
+      "Bash(grep -r process.env. /c/Projetos/Deuxcerie/deuxcerie-frontend/app /c/Projetos/Deuxcerie/deuxcerie-frontend/components /c/Projetos/Deuxcerie/deuxcerie-frontend/lib --include=*.ts --include=*.tsx)",
+      "Bash(grep -r import.*types /c/Projetos/Deuxcerie/deuxcerie-frontend/app /c/Projetos/Deuxcerie/deuxcerie-frontend/components /c/Projetos/Deuxcerie/deuxcerie-frontend/lib /c/Projetos/Deuxcerie/deuxcerie-frontend/store --include=*.ts --include=*.tsx)",
+      "Bash(grep -r \"interface Product\\\\|type Product\" /c/Projetos/Deuxcerie/deuxcerie-frontend --include=*.ts --include=*.tsx -A 5)",
+      "Bash(grep -r \"NEXT_PUBLIC\\\\|process.env\" /c/Projetos/Deuxcerie/deuxcerie-frontend --include=*.env*)",
+      "Bash(ls:*)"
     ]
   }
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ShoppingBag, Check } from "lucide-react";
+import { X, ShoppingBag, Check, ChevronDown } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { submitOrder } from "@/lib/api";
 import { CartItemRow } from "./CartItem";
@@ -14,7 +14,13 @@ type PixModalData = Required<
   Pick<OrderResult, "sessionId" | "brCode" | "brCodeBase64" | "expiresAt">
 >;
 
-export function CartSidebar() {
+export interface BoloOptions {
+  sabores: string[];
+  massas: string[];
+  adicionais: string[];
+}
+
+export function CartSidebar({ boloOptions }: { boloOptions: BoloOptions }) {
   const { isOpen, closeCart, items, itemCount, clearCart } = useCartStore();
   const count = itemCount();
 
@@ -24,6 +30,9 @@ export function CartSidebar() {
   const [taxId, setTaxId] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP" | null>(null);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pixModalData, setPixModalData] = useState<PixModalData | null>(null);
@@ -64,6 +73,8 @@ export function CartSidebar() {
     email.trim() &&
     taxId.trim() &&
     deliveryDate &&
+    deliveryType !== null &&
+    (deliveryType === "PICKUP" || deliveryAddress.trim()) &&
     paymentMethod !== null &&
     boloFieldsComplete &&
     items.length > 0;
@@ -79,6 +90,8 @@ export function CartSidebar() {
         email,
         taxId,
         deliveryDate,
+        deliveryType: deliveryType!,
+        deliveryAddress: deliveryType === "DELIVERY" ? deliveryAddress : undefined,
         items,
         paymentMethod,
       });
@@ -160,159 +173,247 @@ export function CartSidebar() {
                   </div>
                 ) : (
                   items.map((item) => (
-                    <CartItemRow key={item.id} item={item} paymentMethod={paymentMethod} />
+                    <CartItemRow key={item.id} item={item} paymentMethod={paymentMethod} boloOptions={boloOptions} />
                   ))
                 )}
               </div>
 
               {/* Footer */}
               {items.length > 0 && (
-                <div className="px-6 py-5 border-t border-burgundy/10 bg-white/50">
-                  {/* Customer info */}
-                  <div className="space-y-2 mb-4">
-                    <input
-                      type="text"
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      placeholder="Seu nome"
-                      className="w-full text-xs text-burgundy bg-white border border-burgundy/15 rounded-xl
-                        px-3 py-2.5 placeholder:text-burgundy/25
-                        focus:outline-none focus:border-burgundy/40 transition-colors"
-                    />
-                    <input
-                      type="tel"
-                      value={clientMobile}
-                      onChange={(e) => setClientMobile(e.target.value)}
-                      placeholder="Celular (ex: 11999999999)"
-                      className="w-full text-xs text-burgundy bg-white border border-burgundy/15 rounded-xl
-                        px-3 py-2.5 placeholder:text-burgundy/25
-                        focus:outline-none focus:border-burgundy/40 transition-colors"
-                    />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Seu e-mail"
-                      className="w-full text-xs text-burgundy bg-white border border-burgundy/15 rounded-xl
-                        px-3 py-2.5 placeholder:text-burgundy/25
-                        focus:outline-none focus:border-burgundy/40 transition-colors"
-                    />
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={taxId}
-                      onChange={(e) =>
-                        setTaxId(e.target.value.replace(/\D/g, "").slice(0, 11))
-                      }
-                      placeholder="CPF (somente números)"
-                      className="w-full text-xs text-burgundy bg-white border border-burgundy/15 rounded-xl
-                        px-3 py-2.5 placeholder:text-burgundy/25
-                        focus:outline-none focus:border-burgundy/40 transition-colors"
-                    />
-                    <div>
-                      <label className="text-xs font-medium text-burgundy/50 mb-1 block">
-                        Data de entrega
-                      </label>
-                      <input
-                        type="date"
-                        value={deliveryDate}
-                        onChange={(e) => setDeliveryDate(e.target.value)}
-                        min={minDateStr}
-                        className="w-full text-xs text-burgundy bg-white border border-burgundy/15 rounded-xl
-                          px-3 py-2.5 focus:outline-none focus:border-burgundy/40 transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Payment method selector */}
-                  <div className="mb-4 space-y-2">
-                    <p className="text-xs font-semibold text-burgundy/70">
-                      Forma de pagamento
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("PIX")}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border
-                        transition-colors text-xs
-                        ${
-                          paymentMethod === "PIX"
-                            ? "border-burgundy bg-burgundy/5"
-                            : "border-burgundy/15 bg-white hover:border-burgundy/30"
-                        }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-burgundy">PIX</span>
-                        <span className="bg-gold/40 text-burgundy px-2 py-0.5 rounded-full font-medium text-[10px]">
-                          com desconto
-                        </span>
-                      </div>
-                      {paymentMethod === "PIX" && (
-                        <Check size={14} className="text-burgundy flex-shrink-0" />
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("CARD")}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border
-                        transition-colors text-xs
-                        ${
-                          paymentMethod === "CARD"
-                            ? "border-burgundy bg-burgundy/5"
-                            : "border-burgundy/15 bg-white hover:border-burgundy/30"
-                        }`}
-                    >
-                      <span className="font-semibold text-burgundy">
-                        Cartão de Crédito
-                      </span>
-                      {paymentMethod === "CARD" && (
-                        <Check size={14} className="text-burgundy flex-shrink-0" />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Total */}
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-burgundy/60 font-medium">
-                      {paymentMethod === "PIX" ? "Total com PIX" : "Subtotal"}
-                    </span>
-                    <div className="flex items-baseline gap-2">
-                      {paymentMethod === "PIX" && (
-                        <span className="font-display text-burgundy/30 text-sm tabular-nums line-through">
-                          R$ {fmt(cardTotal)}
-                        </span>
-                      )}
-                      <span className="font-display font-bold text-2xl text-burgundy tabular-nums">
-                        R$ {fmt(displayTotal)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {submitError && (
-                    <p className="text-xs text-red-600 mb-3 bg-red-50 rounded-lg px-3 py-2">
-                      {submitError}
-                    </p>
-                  )}
-
+                <div className="border-t border-burgundy/10 bg-white/50">
+                  {/* Toggle */}
                   <button
-                    onClick={handleSubmit}
-                    disabled={!canSubmit || isSubmitting}
-                    className="w-full bg-rose text-cream py-4 rounded-xl font-bold text-base
-                      transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    type="button"
+                    onClick={() => setIsCheckoutOpen((o) => !o)}
+                    className="w-full flex items-center justify-between px-6 py-4
+                      text-burgundy hover:bg-burgundy/5 transition-colors"
                   >
-                    {isSubmitting
-                      ? "Processando..."
-                      : paymentMethod === "PIX"
-                      ? "Finalizar com PIX"
-                      : "Ir para Pagamento"}
+                    <span className="text-sm font-semibold">
+                      Dados e pagamento
+                    </span>
+                    <ChevronDown
+                      size={16}
+                      className={`transition-transform duration-200 ${isCheckoutOpen ? "rotate-180" : ""}`}
+                    />
                   </button>
 
-                  <p className="text-center text-burgundy/30 text-xs mt-3">
-                    {paymentMethod === "PIX"
-                      ? "Você receberá um QR Code para pagamento imediato"
-                      : "Você será redirecionado para o ambiente seguro de pagamento"}
-                  </p>
+                  <AnimatePresence initial={false}>
+                    {isCheckoutOpen && (
+                      <motion.div
+                        key="checkout-form"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        style={{ overflow: "hidden" }}
+                      >
+                        <div className="px-6 pb-5 space-y-4">
+                          {/* Customer info */}
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={clientName}
+                              onChange={(e) => setClientName(e.target.value)}
+                              placeholder="Seu nome"
+                              className="w-full text-xs text-burgundy bg-white border border-burgundy/15 rounded-xl
+                                px-3 py-2.5 placeholder:text-burgundy/25
+                                focus:outline-none focus:border-burgundy/40 transition-colors"
+                            />
+                            <input
+                              type="tel"
+                              value={clientMobile}
+                              onChange={(e) => setClientMobile(e.target.value)}
+                              placeholder="Celular (ex: 11999999999)"
+                              className="w-full text-xs text-burgundy bg-white border border-burgundy/15 rounded-xl
+                                px-3 py-2.5 placeholder:text-burgundy/25
+                                focus:outline-none focus:border-burgundy/40 transition-colors"
+                            />
+                            <input
+                              type="email"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              placeholder="Seu e-mail"
+                              className="w-full text-xs text-burgundy bg-white border border-burgundy/15 rounded-xl
+                                px-3 py-2.5 placeholder:text-burgundy/25
+                                focus:outline-none focus:border-burgundy/40 transition-colors"
+                            />
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={taxId}
+                              onChange={(e) =>
+                                setTaxId(e.target.value.replace(/\D/g, "").slice(0, 11))
+                              }
+                              placeholder="CPF (somente números)"
+                              className="w-full text-xs text-burgundy bg-white border border-burgundy/15 rounded-xl
+                                px-3 py-2.5 placeholder:text-burgundy/25
+                                focus:outline-none focus:border-burgundy/40 transition-colors"
+                            />
+                            <div>
+                              <label className="text-xs font-medium text-burgundy/50 mb-1 block">
+                                Data de entrega
+                              </label>
+                              <input
+                                type="date"
+                                value={deliveryDate}
+                                onChange={(e) => setDeliveryDate(e.target.value)}
+                                min={minDateStr}
+                                className="w-full text-xs text-burgundy bg-white border border-burgundy/15 rounded-xl
+                                  px-3 py-2.5 focus:outline-none focus:border-burgundy/40 transition-colors"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Delivery / Pickup selector */}
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold text-burgundy/70">
+                              Entrega ou retirada?
+                            </p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {(["PICKUP", "DELIVERY"] as const).map((type) => (
+                                <button
+                                  key={type}
+                                  type="button"
+                                  onClick={() => {
+                                    setDeliveryType(type);
+                                    if (type === "PICKUP") setDeliveryAddress("");
+                                  }}
+                                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl border
+                                    transition-colors text-xs font-semibold text-burgundy
+                                    ${
+                                      deliveryType === type
+                                        ? "border-burgundy bg-burgundy/5"
+                                        : "border-burgundy/15 bg-white hover:border-burgundy/30"
+                                    }`}
+                                >
+                                  {type === "PICKUP" ? "Retirada" : "Entrega"}
+                                  {deliveryType === type && (
+                                    <Check size={14} className="text-burgundy flex-shrink-0" />
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+
+                            <AnimatePresence initial={false}>
+                              {deliveryType === "DELIVERY" && (
+                                <motion.div
+                                  key="address-field"
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                                  style={{ overflow: "hidden" }}
+                                >
+                                  <input
+                                    type="text"
+                                    value={deliveryAddress}
+                                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                                    placeholder="Rua, número, bairro, cidade"
+                                    className="w-full text-xs text-burgundy bg-white border border-burgundy/15 rounded-xl
+                                      px-3 py-2.5 placeholder:text-burgundy/25
+                                      focus:outline-none focus:border-burgundy/40 transition-colors"
+                                  />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+
+                          {/* Payment method selector */}
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold text-burgundy/70">
+                              Forma de pagamento
+                            </p>
+
+                            <button
+                              type="button"
+                              onClick={() => setPaymentMethod("PIX")}
+                              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border
+                                transition-colors text-xs
+                                ${
+                                  paymentMethod === "PIX"
+                                    ? "border-burgundy bg-burgundy/5"
+                                    : "border-burgundy/15 bg-white hover:border-burgundy/30"
+                                }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-burgundy">PIX</span>
+                                <span className="bg-gold/40 text-burgundy px-2 py-0.5 rounded-full font-medium text-[10px]">
+                                  com desconto
+                                </span>
+                              </div>
+                              {paymentMethod === "PIX" && (
+                                <Check size={14} className="text-burgundy flex-shrink-0" />
+                              )}
+                            </button>
+
+                            {/* CARD hidden temporarily — pending gateway investigation */}
+                            {false && (
+                            <button
+                              type="button"
+                              onClick={() => setPaymentMethod("CARD")}
+                              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border
+                                transition-colors text-xs
+                                ${
+                                  paymentMethod === "CARD"
+                                    ? "border-burgundy bg-burgundy/5"
+                                    : "border-burgundy/15 bg-white hover:border-burgundy/30"
+                                }`}
+                            >
+                              <span className="font-semibold text-burgundy">
+                                Cartão de Crédito
+                              </span>
+                              {paymentMethod === "CARD" && (
+                                <Check size={14} className="text-burgundy flex-shrink-0" />
+                              )}
+                            </button>
+                            )}
+                          </div>
+
+                          {/* Total */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-burgundy/60 font-medium">
+                              {paymentMethod === "PIX" ? "Total com PIX" : "Subtotal"}
+                            </span>
+                            <div className="flex items-baseline gap-2">
+                              {paymentMethod === "PIX" && (
+                                <span className="font-display text-burgundy/30 text-sm tabular-nums line-through">
+                                  R$ {fmt(cardTotal)}
+                                </span>
+                              )}
+                              <span className="font-display font-bold text-2xl text-burgundy tabular-nums">
+                                R$ {fmt(displayTotal)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {submitError && (
+                            <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">
+                              {submitError}
+                            </p>
+                          )}
+
+                          <button
+                            onClick={handleSubmit}
+                            disabled={!canSubmit || isSubmitting}
+                            className="w-full bg-rose text-cream py-4 rounded-xl font-bold text-base
+                              transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isSubmitting
+                              ? "Processando..."
+                              : paymentMethod === "PIX"
+                              ? "Finalizar com PIX"
+                              : "Ir para Pagamento"}
+                          </button>
+
+                          <p className="text-center text-burgundy/30 text-xs">
+                            {paymentMethod === "PIX"
+                              ? "Você receberá um QR Code para pagamento imediato"
+                              : "Você será redirecionado para o ambiente seguro de pagamento"}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
             </motion.aside>

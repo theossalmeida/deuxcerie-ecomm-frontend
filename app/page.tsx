@@ -8,7 +8,6 @@ import { useCartStore } from "@/store/cart";
 import { CategoryTabs } from "@/components/catalog/CategoryTabs";
 import { ProductGrid } from "@/components/catalog/ProductGrid";
 import { AdditionalsOverlay } from "@/components/catalog/AdditionalsOverlay";
-import { CartSidebar } from "@/components/cart/CartSidebar";
 import { CartButton } from "@/components/cart/CartButton";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { LoadingVideo } from "@/components/LoadingVideo";
@@ -117,7 +116,7 @@ export default function HomePage() {
           Deuxcerie
         </h2>
         <p className="text-cream/50 text-sm max-w-sm mx-auto mt-1">
-          Tortas e bolos artesanais feitos com amor.
+          Doces que Marcam Memórias.
         </p>
       </section>
 
@@ -151,7 +150,6 @@ export default function HomePage() {
       {/* Cart Components */}
       <WhatsAppButton />
       <CartButton />
-      <CartSidebar />
 
       {/* Additionals Overlay */}
       <AdditionalsOverlay

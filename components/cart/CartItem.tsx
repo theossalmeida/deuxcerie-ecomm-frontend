@@ -1,24 +1,80 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { Minus, Plus, X, ImagePlus } from "lucide-react";
+import { Minus, Plus, X, ImagePlus, ChevronDown, Check } from "lucide-react";
 import { CartItem as CartItemType, PaymentMethod } from "@/types";
 import { useCartStore } from "@/store/cart";
+import type { BoloOptions } from "./CartSidebar";
 
 interface CartItemProps {
   item: CartItemType;
   paymentMethod: PaymentMethod | null;
+  boloOptions: BoloOptions;
 }
 
-export function CartItemRow({ item, paymentMethod }: CartItemProps) {
-  const { updateQuantity, removeItem, removeAdditional, addPhoto, removePhoto, setItemObservation, setItemMassa, setItemSabor } =
-    useCartStore();
+function parseSaborString(sabor: string): { sabores: string[]; adicional: string } {
+  if (!sabor) return { sabores: [], adicional: "" };
+  const eIdx = sabor.lastIndexOf(" e ");
+  if (eIdx === -1) return { sabores: sabor.split(",").filter(Boolean), adicional: "" };
+  return {
+    sabores: sabor.slice(0, eIdx).split(",").filter(Boolean),
+    adicional: sabor.slice(eIdx + 3),
+  };
+}
+
+export function CartItemRow({ item, paymentMethod, boloOptions }: CartItemProps) {
+  const {
+    updateQuantity, removeItem, removeAdditional,
+    addPhoto, removePhoto, setItemObservation, setItemMassa, setItemSabor,
+  } = useCartStore();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const saboresRef = useRef<HTMLDivElement>(null);
   const [previews, setPreviews] = useState<string[]>([]);
 
   const isMajorItem = item.product.category !== "adicional";
   const isBolo = item.product.category === "bolo";
 
+  // Bolo-specific state — initialized from stored values to survive cart close/reopen
+  const init = parseSaborString(item.sabor);
+  const [selectedMassa, setSelectedMassa] = useState(item.massa);
+  const [selectedSabores, setSelectedSabores] = useState<string[]>(init.sabores);
+  const [selectedAdicional, setSelectedAdicional] = useState(init.adicional);
+  const [saboresOpen, setSaboresOpen] = useState(false);
+
+  const hasExtraLayer = item.additionals.some((a) =>
+    a.name.toLowerCase().includes("camada")
+  );
+  const maxSabores = hasExtraLayer ? 3 : 2;
+
+  // Cap sabores if + Camada additional is removed
+  useEffect(() => {
+    if (selectedSabores.length > maxSabores) {
+      setSelectedSabores((prev) => prev.slice(0, maxSabores));
+    }
+  }, [maxSabores]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close sabores dropdown on outside click
+  useEffect(() => {
+    if (!saboresOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (saboresRef.current && !saboresRef.current.contains(e.target as Node)) {
+        setSaboresOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [saboresOpen]);
+
+  // Sync sabor → store whenever selections change
+  useEffect(() => {
+    if (!isBolo) return;
+    const base = selectedSabores.join(",");
+    const full = selectedAdicional ? `${base} e ${selectedAdicional}` : base;
+    setItemSabor(item.id, full);
+  }, [selectedSabores, selectedAdicional]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Photos
   useEffect(() => {
     let cancelled = false;
     const urls = item.photos.map((f) => URL.createObjectURL(f));
@@ -30,17 +86,25 @@ export function CartItemRow({ item, paymentMethod }: CartItemProps) {
   }, [item.photos]);
 
   const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+  const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!ALLOWED_TYPES.has(file.type)) return;
     if (file.size > MAX_FILE_SIZE) return;
-    if (item.photos.length < 3) {
-      addPhoto(item.id, file);
-    }
+    if (item.photos.length < 3) addPhoto(item.id, file);
     e.target.value = "";
+  };
+
+  const toggleSabor = (sabor: string) => {
+    setSelectedSabores((prev) => {
+      if (prev.includes(sabor)) return prev.filter((s) => s !== sabor);
+      if (prev.length >= maxSabores) return prev;
+      const next = [...prev, sabor];
+      if (next.length === maxSabores) setSaboresOpen(false);
+      return next;
+    });
   };
 
   const fmt = (cents: number) =>
@@ -137,27 +201,107 @@ export function CartItemRow({ item, paymentMethod }: CartItemProps) {
         </div>
       )}
 
-      {/* Massa & Sabor — bolo only, mandatory */}
+      {/* Massa, Sabor & Adicional — bolo only */}
       {isBolo && (
         <div className="ml-10 mt-3 space-y-2">
-          <input
-            type="text"
-            value={item.massa}
-            onChange={(e) => setItemMassa(item.id, e.target.value)}
-            placeholder="Qual a massa do seu bolo (Baunilha, Cacau...)?"
-            className="w-full text-xs text-burgundy placeholder:text-burgundy/30 bg-burgundy/5
-              rounded-lg px-3 py-2 border border-burgundy/10
-              focus:outline-none focus:border-burgundy/30 transition-colors"
-          />
-          <input
-            type="text"
-            value={item.sabor}
-            onChange={(e) => setItemSabor(item.id, e.target.value)}
-            placeholder="Qual o sabor do recheio?"
-            className="w-full text-xs text-burgundy placeholder:text-burgundy/30 bg-burgundy/5
-              rounded-lg px-3 py-2 border border-burgundy/10
-              focus:outline-none focus:border-burgundy/30 transition-colors"
-          />
+          {/* Massa — single select */}
+          <div className="relative">
+            <select
+              value={selectedMassa}
+              onChange={(e) => {
+                setSelectedMassa(e.target.value);
+                setItemMassa(item.id, e.target.value);
+              }}
+              className="w-full appearance-none text-xs bg-burgundy/5 rounded-lg px-3 py-2
+                border border-burgundy/10 focus:outline-none focus:border-burgundy/30
+                transition-colors pr-7 text-burgundy cursor-pointer"
+            >
+              <option value="" disabled className="text-burgundy/30">
+                Tipo de massa
+              </option>
+              {boloOptions.massas.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+            <ChevronDown
+              size={12}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-burgundy/40 pointer-events-none"
+            />
+          </div>
+
+          {/* Sabor — multi-select inline accordion */}
+          <div ref={saboresRef}>
+            <button
+              type="button"
+              onClick={() => setSaboresOpen((o) => !o)}
+              className={`w-full text-xs bg-burgundy/5 rounded-lg px-3 py-2
+                border transition-colors flex items-center justify-between gap-2
+                focus:outline-none cursor-pointer
+                ${saboresOpen ? "border-burgundy/30" : "border-burgundy/10"}`}
+            >
+              <span className={selectedSabores.length ? "text-burgundy" : "text-burgundy/30"}>
+                {selectedSabores.length
+                  ? selectedSabores.join(", ")
+                  : `Sabores do recheio (até ${maxSabores})`}
+              </span>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {selectedSabores.length > 0 && (
+                  <span className="text-[10px] text-burgundy/40 tabular-nums">
+                    {selectedSabores.length}/{maxSabores}
+                  </span>
+                )}
+                <ChevronDown
+                  size={12}
+                  className={`text-burgundy/40 transition-transform duration-150
+                    ${saboresOpen ? "rotate-180" : ""}`}
+                />
+              </div>
+            </button>
+
+            {saboresOpen && boloOptions.sabores.length > 0 && (
+              <div className="mt-1 border border-burgundy/15 rounded-lg bg-white overflow-hidden">
+                {boloOptions.sabores.map((sabor) => {
+                  const isSelected = selectedSabores.includes(sabor);
+                  const isDisabled = !isSelected && selectedSabores.length >= maxSabores;
+                  return (
+                    <button
+                      key={sabor}
+                      type="button"
+                      onClick={() => toggleSabor(sabor)}
+                      disabled={isDisabled}
+                      className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between
+                        transition-colors border-b border-burgundy/5 last:border-0
+                        ${isSelected ? "bg-burgundy/10 text-burgundy font-medium" : "text-burgundy/70"}
+                        ${isDisabled ? "opacity-30 cursor-not-allowed" : "hover:bg-burgundy/5 cursor-pointer"}`}
+                    >
+                      <span>{sabor}</span>
+                      {isSelected && <Check size={10} className="text-burgundy flex-shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Adicional — single select, optional */}
+          <div className="relative">
+            <select
+              value={selectedAdicional}
+              onChange={(e) => setSelectedAdicional(e.target.value)}
+              className="w-full appearance-none text-xs bg-burgundy/5 rounded-lg px-3 py-2
+                border border-burgundy/10 focus:outline-none focus:border-burgundy/30
+                transition-colors pr-7 text-burgundy cursor-pointer"
+            >
+              <option value="">Adicional (opcional)</option>
+              {boloOptions.adicionais.map((a) => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+            <ChevronDown
+              size={12}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-burgundy/40 pointer-events-none"
+            />
+          </div>
         </div>
       )}
 
